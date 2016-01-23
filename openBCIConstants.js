@@ -181,6 +181,18 @@ const kOBCILeadOffDriveInAmps = 0.000000006;
 /** Command send delay */
 const kOBCIWriteIntervalDelayMS = 10;
 
+/** Impedance */
+const kOBCIImpedanceTextBad = 'bad';
+const kOBCIImpedanceTextGood = 'good';
+const kOBCIImpedanceTextInit = 'init';
+const kOBCIImpedanceTextOk = 'ok';
+const kOBCIImpedanceThresholdGoodMin = 0;
+const kOBCIImpedanceThresholdGoodMax = 5000;
+const kOBCIImpedanceThresholdOkMin = 5001;
+const kOBCIImpedanceThresholdOkMax = 10000;
+const kOBCIImpedanceThresholdBadMin = 10001;
+
+
 module.exports = {
     /** Turning channels off */
     OBCIChannelOff_1:kOBCIChannelOff_1,
@@ -502,7 +514,21 @@ module.exports = {
     /** Impedance Setter Maker */
     getImpedanceSetter:impedanceSetter,
     /** Command send delay */
-    OBCIWriteIntervalDelayMS:kOBCIWriteIntervalDelayMS
+    OBCIWriteIntervalDelayMS:kOBCIWriteIntervalDelayMS,
+    /** Impedance */
+    OBCIImpedanceTextBad:kOBCIImpedanceTextBad,
+    OBCIImpedanceTextGood:kOBCIImpedanceTextGood,
+    OBCIImpedanceTextInit:kOBCIImpedanceTextInit,
+    OBCIImpedanceTextOk:kOBCIImpedanceTextOk,
+    getTextForRawImpedance: (value) => {
+        if (value > kOBCIImpedanceThresholdGoodMin && value < kOBCIImpedanceThresholdGoodMax) {
+            return kOBCIImpedanceTextGood;
+        } else if (value > kOBCIImpedanceThresholdOkMin && value < kOBCIImpedanceThresholdOkMax) {
+            return kOBCIImpedanceTextOk;
+        } else {
+            return kOBCIImpedanceTextBad;
+        }
+    }
 };
 
 /**
