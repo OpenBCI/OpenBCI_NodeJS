@@ -715,60 +715,6 @@ function OpenBCIFactory() {
         }
     };
 
-<<<<<<< HEAD
-    /**
-     * Purpose: List available ports so the user can choose a device when not
-     *              automatically found.
-     *
-     * Note: This method is used for convenience essentially just wrapping up
-     *           serial port.
-     *
-     * Author: Andy Heusser (@andyh616)
-     * @returns {Promise}
-     */
-    OpenBCIBoard.prototype.listPorts = function() {
-        return new Promise((resolve, reject) => {
-            serialPort.list((err, ports) => {
-                if(err) reject(err);
-                else resolve(ports);
-            })
-        })
-    };
-
-
-    /**
-     * Purpose: Automatically find an OpenBCI board. Returns either the name
-     *              of the port of the OpenBCI board, or a list of all the ports
-     *              so you can offer a drop down menu to the user to pick from!
-     *
-     * Note: This method is used for convenience and should be used when trying to
-     *           connect to a board. If you find a case (i.e. a platform (linux,
-     *           windows...) that this does not work, please open an issue and
-     *           we will add support!
-     *
-     * Author: AJ Keller (@pushtheworldllc)
-     * @returns {Promise}
-     */
-    OpenBCIBoard.prototype.autoFindOpenBCIBoard = function() {
-        var macSerialPrefix = 'usbserial-D';
-        return new Promise((resolve, reject) => {
-            serialPort.list((err, ports) => {
-                if(err) reject(err);
-                if(ports.some(port => {
-                        if(port.comName.includes(macSerialPrefix)) {
-                            this.portName = port.comName;
-                            return true;
-                        }
-                    })) {
-                    resolve(this.portName);
-                }
-                else resolve(ports);
-            })
-        })
-    };
-
-=======
->>>>>>> 19c46d6... ADD Automatic Impedance Testing
     /**
      * Purpose: Merge an input buffer with the master buffer. Takes into account
      *              wrapping around the master buffer if we run out of space in
