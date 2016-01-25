@@ -14,6 +14,19 @@ const SCALE_FACTOR_CHANNEL = ADS1299_VREF / ADS1299_GAIN / (Math.pow(2,23) - 1);
 
 var k = require('./openBCIConstants');
 
+function impedanceObjectSingleSample() {
+    return {
+        P: {
+            raw: -1,
+            text: k.OBCIImpedanceTextInit
+        },
+        N: {
+            raw: -1,
+            text: k.OBCIImpedanceTextInit
+        }
+    }
+}
+
 
 module.exports = {
     convertPacketToSample: function (dataBuf) {
@@ -78,18 +91,25 @@ module.exports = {
             console.log('---- Stop Byte: ' + sample.stopByte);
         }
     },
-    impedanceCalculation: function(sampleObject) {
+    /**
+     * Purpose: Calculate the impedance for one channel only.
+     * @param sampleObject - Standard OpenBCI sample object
+     * @param channelNumber - Number, the channel you want to calculate impedance for.
+     * @returns {Promise} - Fullfilled with impedance vaule for the specified channel.
+     * Author: AJ Keller
+     */
+    impedanceCalculationForChannel: function(sampleObject,channelNumber) {
         const sqrt2 = Math.sqrt(2);
         return new Promise((resolve,reject) => {
             if(sampleObject === undefined || sampleObject === null) reject('Sample Object cannot be null or undefined');
             if(sampleObject.channelData === undefined || sampleObject.channelData === null) reject('Channel cannot be null or undefined');
+            if(channelNumber < 1 || channelNumber > k.OBCINumberOfChannelsDefault) reject('Channel number invalid.');
 
-            var impedanceArray = [];
-            for (var i = 1; i <= k.OBCINumberOfChannelsDefault; i++) {
-                impedanceArray[i] = (sqrt2 * sampleObject.channelData[i]) / k.OBCILeadOffDriveInAmps;
+            if (sampleObject.channelData[channelNumber] < 0) {
+                sampleObject.channelData[channelNumber] *= -1;
             }
-            sampleObject.impedanceArray = impedanceArray;
-            resolve(sampleObject);
+            var impedance = (sqrt2 * sampleObject.channelData[channelNumber]) / k.OBCILeadOffDriveInAmps;
+            resolve(impedance);
         });
     },
     interpret24bitAsInt32: function(threeByteBuffer) {
@@ -103,6 +123,19 @@ module.exports = {
         return (prefix << 24 ) | (threeByteBuffer[0] << 16) | (threeByteBuffer[1] << 8) | threeByteBuffer[2];
 
     },
+    impedanceObject: () => {
+        var impedanceObject = {};
+        for (var i = 1; i <= k.OBCINumberOfChannelsDaisy; i++) {
+            impedanceObject[i] = {
+                average: impedanceObjectSingleSample(),
+                data: {
+                    0: impedanceObjectSingleSample()
+                }
+            };
+        }
+        return impedanceObject;
+    },
+    impedanceObjectSample: impedanceObjectSingleSample,
     interpret16bitAsInt32: function(twoByteBuffer) {
         var prefix = 0;
 

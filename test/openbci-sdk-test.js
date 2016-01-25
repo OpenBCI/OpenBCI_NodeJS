@@ -77,35 +77,69 @@ describe('openbci-sdk',function() {
                             console.log('board connected on path: ' + value);
                             ourBoard.on('ready',function() {
                                 console.log('Ready to start streaming!');
-                                //ourBoard.channelOff(1);
-                                //ourBoard.channelOff(2);
-                                //ourBoard.channelOff(3);
-                                //ourBoard.channelOff(4);
-                                //ourBoard.channelOff(5);
-                                //ourBoard.channelOff(6);
-                                //ourBoard.channelOff(7);
-                                ourBoard.streamStart();
-                                //ourBoard.on('sample',function(sample) {
-                                //    //wstream.write('Master Count: ' + sample._count + ' Sample Count: ' + sample.sampleNumber + '\n');
-                                //    //console.log('Master Count: ' + sample._count + ' Sample Count: ' + sample.sampleNumber);
-                                //    OpenBCISample.debugPrettyPrint(sample);
-                                //});
+
+                                /** 1: Start Streaming */
                                 setTimeout(() => {
-                                    ourBoard.impedanceTestStartAll().then(() => {
-                                        console.log('good start');
-                                    },(err) => {
-                                        console.log(err);
-                                    });
-                                },50);
-                                ourBoard.on('sample',function(sample) {
-                                    //wstream.write(' Sample Count: ' + sample.sampleNumber + ' impedance: ' + JSON.stringify(sample.impedanceArray) + '\n');
-                                    //console.log('Sample!');
-                                    if(sample.impedanceArray) {
-                                        wstream.write('Impedance\'s for channels: 1: ' + sample.impedanceArray[1] + ' 2: ' + sample.impedanceArray[2] + ' 3: ' + sample.impedanceArray[3] + ' 4: ' + sample.impedanceArray[4] + ' 5: ' + sample.impedanceArray[5] + ' 6: ' + sample.impedanceArray[6] + ' 7: ' + sample.impedanceArray[7] + ' 8: ' + sample.impedanceArray[8] + '\n');
-                                        console.log('Impedance: ' + sample.impedanceArray.toString());
-                                        //console.log('Impedance\'s for channels: 1: ' + sample.impedanceArray[1] + ' 2: ' + sample.impedanceArray[2] + ' 3: ' + sample.impedanceArray[3] + ' 4: ' + sample.impedanceArray[4] + ' 5: ' + sample.impedanceArray[5] + ' 6: ' + sample.impedanceArray[6] + ' 7: ' + sample.impedanceArray[7] + ' 8: ' + sample.impedanceArray[8]);
+                                    ourBoard.streamStart();
+                                }, 50);
+
+
+                                /** 2: Install emiter where impedance object will be spat out */
+                                ourBoard.on('impedanceObject', (impedanceObject) => {
+                                    running = true;
+                                    ourBoard.streamStop();
+                                    wstream.write('Final Impedance\'s:\n');
+                                    console.log('\nFinal Impedance\'s: ');
+                                    for (i = 1; i <=8; i++) {
+                                        wstream.write('\tChannel ' + i + '\n');
+                                        console.log('\tChannel ' + i);
+                                        //console.log(JSON.stringify(impedanceObject[i]));
+                                        var sampleNumber = 0;
+                                        var sample;
+                                        var singleObject;
+                                        // do P
+                                        wstream.write('\t\tP input:\n');
+                                        //for (sample in impedanceObject[i].data) {
+                                        //    singleObject = impedanceObject[i].data[sample];
+                                        //    if (singleObject.P.raw > 0) {
+                                        //        //console.log('Running average of ' + (sum / count) + ' with sum: ' + sum + ' and count: ' + count);
+                                        //        console.log('\t\t' + sampleNumber + ': (' + singleObject.P.text + ') \traw value of: ' + singleObject.P.raw.toFixed(2));
+                                        //        wstream.write('\t\t' + sampleNumber + ': (' + singleObject.P.text + ') \traw value of: ' + singleObject.P.raw.toFixed(2) + '\n');
+                                        //    }
+                                        //    sampleNumber++;
+                                        //}
+                                        wstream.write('\t\tAverage raw: ' + impedanceObject[i].average.P.raw.toFixed(2) + ' is ' + impedanceObject[i].average.P.text + '\n');
+                                        console.log('\t\tAverage raw: ' + impedanceObject[i].average.P.raw.toFixed(2) + ' is ' + impedanceObject[i].average.P.text);
+
+                                        // do N
+                                        sampleNumber = 0;
+                                        wstream.write('\t\tN input:\n');
+                                        //for (sample in impedanceObject[i].data) {
+                                        //    singleObject = impedanceObject[i].data[sample];
+                                        //    if (singleObject.N.raw > 0) {
+                                        //        //console.log('Running average of ' + (sum / count).toFixed(2) + ' with sum: ' + sum + ' and count: ' + count);
+                                        //        console.log('\t\t' + sampleNumber + ': (' + singleObject.N.text + ') \traw value of: ' + singleObject.N.raw.toFixed(2));
+                                        //        wstream.write('\t\t' + sampleNumber + ': (' + singleObject.N.text + ') \traw value of: ' + singleObject.N.raw.toFixed(2) + '\n');
+                                        //    }
+                                        //    sampleNumber++;
+                                        //}
+                                        wstream.write('\t\tAverage raw: ' + impedanceObject[i].average.N.raw.toFixed(2) + ' is ' + impedanceObject[i].average.N.text + '\n');
+                                        console.log('\t\tAverage raw: ' + impedanceObject[i].average.N.raw.toFixed(2) + ' is ' + impedanceObject[i].average.N.text);
                                     }
+                                    setTimeout(() => {
+                                        done();
+                                    }, 100);
                                 });
+
+                                /** 3: Start the impedance test! */
+                                setTimeout(() => {
+                                    ourBoard.impedanceTestAllChannels();
+                                    //ourBoard.impedanceTestChannel(2).then(obj => {
+                                    //    console.log(JSON.stringify(obj));
+                                    //});
+                                },200);
+
+
                             });
                         });
                     }
@@ -113,19 +147,9 @@ describe('openbci-sdk',function() {
                     console.log('Error [setup]: ' + err);
                     done();
                 });
-                setTimeout(() => {
-                    if(ourBoard.isCalculatingImpedance) {
-                        ourBoard.impedanceTestStopAll()
-                            .then(function() {
-                                console.log('Impedance test stopped!');
-                            });
-                    } else {
-                        done();
-                    }
-                },6000);
+
                 setTimeout(function() {
                     ourBoard.disconnect().then(function(msg) {
-                        running = true;
                         setTimeout(function(){
                             done();
                         },50);
@@ -133,7 +157,7 @@ describe('openbci-sdk',function() {
                         console.log('Error: ' + err);
                         done();
                     });
-                },9000);
+                }, 8000);
             });
             it('should stop the simulator after 5 seconds', function() {
                 expect(running).equals(true);
