@@ -15,7 +15,7 @@
   "license": "MIT",
   "dependencies": {
     "gaussian": "^1.0.0",
-    "serialport": "^2.0.2"
+    "serialport": "~2.1.0"
   },
   "directories": {
     "test": "test"
