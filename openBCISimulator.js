@@ -173,6 +173,11 @@ function OpenBCISimulatorFactory() {
     };
 
     OpenBCISimulator.prototype.close = function(callback) {
+
+        // TODO: remove these when there is a code path allowing simulator re-use
+        clearInterval(this.stream);
+        this.streaming = false;
+
         if (this.connected) {
             this.emit('close');
         }

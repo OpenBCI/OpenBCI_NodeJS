@@ -217,13 +217,18 @@ function OpenBCIFactory() {
      * @description The essential precursor method to be called initially to establish a
      *              serial connection to the OpenBCI board.
      * @param portName - a string that contains the port name of the OpenBCIBoard.
+     * @param dontReset (optional) - Don't send a soft reset command if board is streaming.
+     *  (Default `false`) If `true`, no `stop` command or `softReset` command will be sent
+     *  over the serial port. The software will wait 500 ms for a sample to detect if the
+     *  board is presently streaming or not. This is useful for connecting to the board
+     *  without changing the state it is currently in, i.e. stopping a long SD write.
      * @returns {Promise} if the board was able to connect.
      * @author AJ Keller (@pushtheworldllc)
      */
-    OpenBCIBoard.prototype.connect = function(portName) {
-        this.connected = false;
-
+    OpenBCIBoard.prototype.connect = function(portName, dontReset) {
         return new Promise((resolve,reject) => {
+            if (this.connected) reject('Disconnect first.');
+
             // If we are simulating, set boardSerial to fake name
             var boardSerial;
             /* istanbul ignore else */
@@ -257,66 +262,108 @@ function OpenBCIFactory() {
 
             if(this.options.verbose) console.log('Serial port connected');
 
-            boardSerial.on('data',data => {
+            var dataListener = data => {
                 this._processBytes(data);
-            });
-            this.connected = true;
+            }
+            boardSerial.on('data', dataListener);
+
             boardSerial.once('open',() => {
+                this.connected = true;
+                this.streaming = false;
                 var timeoutLength = this.options.simulate ? 50 : 300;
                 if(this.options.verbose) console.log('Serial port open');
-                setTimeout(() => {
-                    if(this.options.verbose) console.log('Sending stop command, in case the device was left streaming...');
-                    this.write(k.OBCIStreamStop);
-                    if (this.serial) this.serial.flush();
-                },timeoutLength);
-                setTimeout(() => {
-                    if(this.options.verbose) console.log('Sending soft reset');
-                    this.softReset();
-                    resolve();
-                    if(this.options.verbose) console.log("Waiting for '$$$'");
+                if(dontReset) {
+                    // Set streaming to true if samples are coming in
+                    this.curParsingMode = k.OBCIParsingNormal;
+                    var streamTimeout, sampleFunc;
+                    streamTimeout = setTimeout(() => {
+                        this.removeListener('sample', sampleFunc);
+                        resolve();
+                    }, 500); // Some serial ports flush a couple times a second
+                             // TODO: what ports?  sounds like a bug?
+                    sampleFunc = () => {
+                        clearTimeout(streamTimeout);
+                        this.streaming = true;
+                        resolve();
+                    };
+                    this.once('sample',sampleFunc);
+                } else {
+                    setTimeout(() => {
+                        if(this.options.verbose) console.log('Sending stop command, in case the device was left streaming...');
+                        this.write(k.OBCIStreamStop);
+                        if (this.serial) this.serial.flush();
+                    },timeoutLength);
+                    setTimeout(() => {
+                        if(this.options.verbose) console.log('Sending soft reset');
+                        this.softReset();
+                        resolve();
+                        if(this.options.verbose) console.log("Waiting for '$$$'");
+                    },timeoutLength + 250);
+                }
+            });
 
-                },timeoutLength + 250);
-            });
-            boardSerial.once('close',() => {
+            var closeListener = () => {
+                this.serial = null;
+
+                this.commandsToWrite = 0;
+                clearTimeout(this.writer);
+                this.writer = null;
+
+                boardSerial.removeListener('data', dataListener);
+                boardSerial.removeListener('error', errorListener);
+
                 if (this.options.verbose) console.log('Serial Port Closed');
-                this.emit('close')
-            });
+                if (this.connected) {
+                  this.emit('close')
+                  this.connected = false;
+                }
+            };
+            boardSerial.once('close', closeListener);
+
             /* istanbul ignore next */
-            boardSerial.once('error',(err) => {
+            var errorListener = err => {
+                boardSerial.removeListener('close', closeListener);
+
                 if (this.options.verbose) console.log('Serial Port Error');
                 this.emit('error',err);
-            });
+
+                closeListener();
+            };
+            boardSerial.once('error', errorListener);
         });
     };
 
     /**
      * @description Closes the serial port. Waits for stop streaming command to
      *  be sent if currently streaming.
+     * @param dontStop (optional) - Don't send a stop stream command to the board.
+     *  (Default `false`) Allows the board to keep streaming after disconnection
      * @returns {Promise} - fulfilled by a successful close of the serial port object, rejected otherwise.
      * @author AJ Keller (@pushtheworldllc)
      */
-    OpenBCIBoard.prototype.disconnect = function() {
+    OpenBCIBoard.prototype.disconnect = function(dontStop) {
         // if we are streaming then we need to give extra time for that stop streaming command to propagate through the
         //  system before closing the serial port.
+
+        // TODO: wait for commandsToWrite to drain before closing
+
         var timeout = 0;
-        if (this.streaming) {
-            this.streamStop();
-            if(this.options.verbose) console.log('stop streaming');
-            timeout = 15; // Avg time is takes for message to propagate
+        if(this.streaming) {
+            if(!dontStop) {
+              this.streamStop();
+              if(this.options.verbose) console.log('stop streaming');
+              timeout = 15; // Avg time is takes for message to propagate
+            } else {
+              if(this.options.verbose) console.log('will not stop streaming');
+            }
         }
 
         return new Promise((resolve, reject) => {
             setTimeout(() => {
-                if(!this.connected) reject('no board connected');
-                this.connected = false;
-                if (this.serial) {
-                    this.serial.close(() => {
-                        resolve();
-                    });
-                } else {
+                if(!this.connected) return reject('no board connected');
+                this.serial.close(() => {
                     resolve();
-                }
-
+                });
             },timeout);
         });
     };
@@ -436,6 +483,7 @@ function OpenBCIFactory() {
                     .catch(err => {
                         /* istanbul ignore if */
                         if(this.options.verbose) console.log('write failure: ' + err);
+                        // TODO: could this error be propagated back to the function that called write?
                     });
             } else {
                 if(this.options.verbose) console.log('Big problem! Writer started with no commands to write');
