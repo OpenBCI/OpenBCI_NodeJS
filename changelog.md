@@ -4,6 +4,10 @@
 
 * Implement and adapt semi-standard code style. Closes #83
 
+### Bug Fixes
+
+* Don't drop early packet fragments after board reset
+
 # 1.3.3
 
 ### New Features
