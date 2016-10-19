@@ -1613,6 +1613,8 @@ function OpenBCIFactory () {
           this.curParsingMode = k.OBCIParsingNormal;
           this.buffer = null;
           this.emit('ready');
+        } else {
+          this.buffer = data;
         }
         break;
       case k.OBCIParsingTimeSyncSent:
