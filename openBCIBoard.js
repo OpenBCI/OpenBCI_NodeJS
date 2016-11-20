@@ -379,6 +379,14 @@ function OpenBCIFactory () {
   };
 
   /**
+   * @description Checks if the module is or will simulate.
+   * @returns {boolean} - True if simulating.
+   */
+  OpenBCIBoard.prototype.isSimulating = function () {
+    return this.options.simulate;
+  };
+
+  /**
   * @description Checks if the board is currently sending samples.
   * @returns {boolean} - True if streaming.
   */

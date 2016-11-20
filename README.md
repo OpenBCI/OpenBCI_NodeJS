@@ -681,11 +681,19 @@ Sends command to turn off impedances for all channels and stop continuously calc
 ### <a name="method-is-connected"></a> .isConnected()
 
 Checks if the driver is connected to a board.
+
 **_Returns_** a boolean, true if connected
+
+### <a name="method-is-streaming"></a> .isSimulating()
+
+Checks if the module is currently in simulate mode.
+
+**_Returns_** a boolean, true if in simulate mode
 
 ### <a name="method-is-streaming"></a> .isStreaming()
 
 Checks if the board is currently sending samples.
+
 **_Returns_** a boolean, true if streaming
 
 ### <a name="method-list-ports"></a> .listPorts()

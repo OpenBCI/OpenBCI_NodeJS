@@ -86,6 +86,7 @@ describe('openbci-sdk', function () {
       expect(board.numberOfChannels()).to.equal(8);
       expect(board.isConnected()).to.be.false;
       expect(board.isStreaming()).to.be.false;
+      expect(board.isSimulating()).to.be.false;
     });
     it('should be able to set ganglion mode', () => {
       var board = new openBCIBoard.OpenBCIBoard({
@@ -232,6 +233,7 @@ describe('openbci-sdk', function () {
       (ourBoard.options.simulate).should.equal(true);
       (ourBoard.options.simulatorSampleRate).should.equal(69);
       (ourBoard.sampleRate()).should.equal(69);
+      (ourBoard.isSimulating()).should.equal(true);
     });
     it('should be able to attach the daisy board in the simulator', () => {
       var ourBoard1 = new openBCIBoard.OpenBCIBoard({
@@ -402,10 +404,26 @@ describe('openbci-sdk', function () {
       ourBoard.connect(k.OBCISimulatorPortName).catch(done);
       ourBoard.on('ready', function () {
         var disconnectSpy = sinon.spy(ourBoard, 'disconnect');
+        ourBoard.isSimulating().should.equal(true);
         ourBoard.options.simulate.should.equal(true);
         ourBoard.simulatorDisable().then(() => {
           disconnectSpy.should.have.been.calledOnce;
           disconnectSpy.restore();
+          ourBoard.options.simulate.should.equal(false);
+          done();
+        }, done);
+      });
+    });
+    it('should sim from connect', function (done) {
+      ourBoard = new openBCIBoard.OpenBCIBoard({
+        verbose: true
+      });
+      ourBoard.connect(k.OBCISimulatorPortName).catch(done);
+      ourBoard.on('ready', function () {
+        ourBoard.isSimulating().should.equal(true);
+        ourBoard.options.simulate.should.equal(true);
+        ourBoard.simulatorDisable().then(() => {
+          ourBoard.isSimulating().should.equal(false);
           ourBoard.options.simulate.should.equal(false);
           done();
         }, done);

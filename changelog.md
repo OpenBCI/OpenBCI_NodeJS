@@ -1,5 +1,8 @@
 # 1.4.1
 
+### New Features
+* New API function `.isSimulating()` to check if module is in simulate mode.
+
 ### Bug Fixes
 * Fixes bug where extra data after EOT (`$$$`) was dumped by preserving the poriton after the EOT for further decomposition.
 * Fixes bug where any calls to channel set would actually break the openBCISample code as the channelSettingsArray contained an undefined.
