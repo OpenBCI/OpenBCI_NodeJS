@@ -903,7 +903,7 @@ function makeDaisySampleObject (lowerSampleObject, upperSampleObject) {
     'upper': upperSampleObject.auxData
   };
 
-  daisySampleObject['timestamp'] = (lowerSampleObject.timestamp + upperSampleObject.timestamp) / 2;
+  daisySampleObject['timeStamp'] = (lowerSampleObject.timeStamp + upperSampleObject.timeStamp) / 2;
 
   daisySampleObject['_timestamps'] = {
     'lower': lowerSampleObject.timestamp,
