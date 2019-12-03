@@ -6,6 +6,21 @@
   "scripts": {
     "test": "echo 'PASS: Verified all dependencies could be installed'"
   },
+  "husky": {
+    "hooks": {
+      "pre-commit": "npm run test && lint-staged"
+    }
+  },
+  "lint-staged": {
+    "*.js": [
+      "eslint --fix",
+      "git add"
+    ],
+    "*.{css,html,json,md}": [
+      "prettier --write",
+      "git add"
+    ]
+  },
   "keywords": [
     "openbci",
     "openbci-node"
@@ -42,5 +57,11 @@
       "expect",
       "should"
     ]
+  },
+  "devDependencies": {
+    "eslint": "^6.7.2",
+    "husky": "^3.1.0",
+    "lint-staged": "^9.5.0",
+    "prettier": "^1.19.1"
   }
 }
